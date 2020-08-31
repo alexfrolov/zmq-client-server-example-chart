@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zmq-client-server-example-chart.fullname" . }}
+  labels:
+    {{- include "zmq-client-server-example-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "zmq-client-server-example-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "zmq-client-server-example-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: zmq-client-server-serverd
+          image: "{{ .Values.server.imageName}}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.server.pullPolicy }}
+          env:
+            - name: SERVER_LISTEN_URI
+              value: tcp://0.0.0.0:{{ .Values.service.port}}
+          command: ["python", "-u", "./serverd.py"]
+          ports:
+            - name: listen-port
+              containerPort: {{ .Values.service.port}}
+              protocol: TCP
+        - name: zmq-client-server-clientd
+          image: "{{ .Values.client.imageName}}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.client.pullPolicy }}
+          ports:
+            - name: connect-port
+              containerPort: {{ .Values.service.port}}
+              protocol: TCP
+          env:
+            - name: SERVER_CONNECT_URI
+              value: tcp://0.0.0.0:{{ .Values.service.port}}
+          command: ["python", "-u", "./clientd.py"]
